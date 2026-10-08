@@ -1,15 +1,14 @@
 package my.disenchanter.mixin;
 
 import my.disenchanter.util.DisenchantExtension;
+import my.disenchanter.util.DisenchantResultSlot;
 import net.minecraft.core.Holder;
-import net.minecraft.core.component.DataComponents;
-import net.minecraft.sounds.SoundEvents
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.Container;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerLevelAccess;
 import net.minecraft.world.inventory.GrindstoneMenu;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantment;
@@ -56,18 +55,25 @@ public abstract class GrindstoneMenuMixin implements DisenchantExtension {
         return this.disenchanter$isExtracting;
     }
 
+    @Inject(method = "<init>(ILnet/minecraft/world/entity/player/Inventory;Lnet/minecraft/world/inventory/ContainerLevelAccess;)V", at = @At("TAIL"))
+    private void wrapResultSlot(int i, Inventory inventory, ContainerLevelAccess containerLevelAccess, CallbackInfo ci) {
+        AbstractContainerMenu menu = (AbstractContainerMenu) (Object) this;
+        if (menu.slots.size() > 2) {
+            Slot orig = menu.slots.get(2);
+            menu.slots.set(2, new DisenchantResultSlot((GrindstoneMenu) (Object) this, orig, this.repairSlots, this.resultSlots, this.access));
+        }
+    }
+
     @Inject(method = "createResult", at = @At("HEAD"), cancellable = true)
     private void createDisenchantResult(CallbackInfo ci) {
         ItemStack top = this.repairSlots.getItem(0);
         ItemStack bottom = this.repairSlots.getItem(1);
 
-        // الشرط: الغرض العلوي مطور، والغرض السفلي كتاب عادي أو كتاب مسحور
         if (!top.isEmpty() && !bottom.isEmpty() && (bottom.is(Items.BOOK) || bottom.is(Items.ENCHANTED_BOOK))) {
             ItemEnchantments enchants = EnchantmentHelper.getEnchantmentsForCrafting(top);
             if (!enchants.isEmpty()) {
                 this.disenchanter$isExtracting = true;
 
-                // إذا لم يتم تحديد أي شيء، نحدد أول تطويرة افتراضياً
                 if (this.disenchanter$selected.isEmpty()) {
                     for (Holder<Enchantment> holder : enchants.keySet()) {
                         this.disenchanter$selected.add(holder.getRegisteredName());
@@ -75,7 +81,6 @@ public abstract class GrindstoneMenuMixin implements DisenchantExtension {
                     }
                 }
 
-                // بناء كتاب مسحور يحتوي على التطويرات المختارة فقط
                 ItemStack resultBook = new ItemStack(Items.ENCHANTED_BOOK);
                 ItemEnchantments.Mutable bookEnchants = new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);
 
@@ -95,42 +100,5 @@ public abstract class GrindstoneMenuMixin implements DisenchantExtension {
             }
         }
         this.disenchanter$isExtracting = false;
-    }
-
-    // استهلاك كتاب واحد وتفريغ التطويرات المختارة فقط من السيف بأمان
-    @Inject(method = "onTake", at = @At("HEAD"), cancellable = true)
-    private void onTakeExtracted(Player player, ItemStack itemStack, CallbackInfo ci) {
-        if (this.disenchanter$isExtracting) {
-            ItemStack top = this.repairSlots.getItem(0);
-            ItemStack bottom = this.repairSlots.getItem(1);
-
-            // 1. استهلاك كتاب واحد فقط من الستاك
-            bottom.shrink(1);
-            this.repairSlots.setItem(1, bottom.isEmpty() ? ItemStack.EMPTY : bottom);
-
-            // 2. إزالة التطويرات المختارة من السيف مع إبقاء الباقي
-            ItemEnchantments enchants = EnchantmentHelper.getEnchantmentsForCrafting(top);
-            ItemEnchantments.Mutable remaining = new ItemEnchantments.Mutable(enchants);
-
-            for (Holder<Enchantment> holder : enchants.keySet()) {
-                if (this.disenchanter$selected.contains(holder.getRegisteredName())) {
-                    remaining.set(holder, 0); // حذف التطويرة المنقولة
-                }
-            }
-
-            ItemStack updatedTop = top.copy();
-            if (remaining.toImmutable().isEmpty() && updatedTop.is(Items.ENCHANTED_BOOK)) {
-                updatedTop = new ItemStack(Items.BOOK); // تحويل الكتاب المسحور إلى كتاب عادي إذا فرغ
-            } else {
-                EnchantmentHelper.setEnchantments(updatedTop, remaining.toImmutable());
-            }
-
-            this.repairSlots.setItem(0, updatedTop);
-
-            // صوت النجاح
-            this.access.execute((level, pos) -> level.playSound(null, pos, SoundEvents.GRINDSTONE_USE, SoundSource.BLOCKS, 1.0f, 1.0f));
-
-            ci.cancel();
-        }
     }
 }

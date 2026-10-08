@@ -12,10 +12,6 @@ repositories {
         name = "Fabric"
         url = uri("https://maven.fabricmc.net/")
     }
-    maven {
-        name = "TerraformersMC"
-        url = uri("https://maven.terraformersmc.com/releases/")
-    }
 }
 
 loom {
@@ -41,9 +37,7 @@ dependencies {
     implementation("net.fabricmc:fabric-loader:${providers.gradleProperty("loader_version").get()}")
 
     implementation("net.fabricmc.fabric-api:fabric-api:${providers.gradleProperty("fabric_api_version").get()}")
-    implementation("net.fabricmc.fabric-language-kotlin:${providers.gradleProperty("fabric_kotlin_version").get()}")
-
-    compileOnly("com.terraformersmc:modmenu:21.0.0-beta.1")
+    implementation("net.fabricmc:fabric-language-kotlin:${providers.gradleProperty("fabric_kotlin_version").get()}")
 }
 
 tasks.processResources {
