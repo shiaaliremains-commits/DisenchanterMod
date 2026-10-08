@@ -33,7 +33,8 @@ public abstract class GrindstoneScreenMixin extends AbstractContainerScreen<Grin
     @Unique private final List<Button> disenchanter$buttons = new ArrayList<>();
     @Unique private ItemStack disenchanter$lastTop = ItemStack.EMPTY;
 
-    @Inject(method = "containerTick", at = @At("TAIL"))
+    // الحقن في دالة tick الرسمية المتوافقة 100% مع إصدار 26.3
+    @Inject(method = "tick", at = @At("TAIL"))
     private void updateEnchantButtons(CallbackInfo ci) {
         ItemStack top = this.menu.getSlot(0).getItem();
         if (!ItemStack.matches(top, this.disenchanter$lastTop)) {
