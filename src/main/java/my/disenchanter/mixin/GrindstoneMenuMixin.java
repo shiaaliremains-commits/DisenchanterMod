@@ -26,11 +26,15 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Mixin(GrindstoneMenu.class)
-public abstract class GrindstoneMenuMixin implements DisenchantExtension {
+public abstract class GrindstoneMenuMixin extends AbstractContainerMenu implements DisenchantExtension {
 
     @Shadow @Final private Container repairSlots;
     @Shadow @Final private Container resultSlots;
     @Shadow @Final private ContainerLevelAccess access;
+
+    protected GrindstoneMenuMixin() {
+        super(null, 0);
+    }
 
     @Unique private final Set<String> disenchanter$selected = new HashSet<>();
     @Unique private boolean disenchanter$isExtracting = false;
@@ -47,7 +51,8 @@ public abstract class GrindstoneMenuMixin implements DisenchantExtension {
         } else {
             this.disenchanter$selected.add(enchantId);
         }
-        ((GrindstoneMenu) (Object) this).createResult();
+        // استدعاء الدالة العامة لتحديث النتيجة بدون مشاكل private
+        this.slotsChanged(this.repairSlots);
     }
 
     @Override
@@ -57,10 +62,9 @@ public abstract class GrindstoneMenuMixin implements DisenchantExtension {
 
     @Inject(method = "<init>(ILnet/minecraft/world/entity/player/Inventory;Lnet/minecraft/world/inventory/ContainerLevelAccess;)V", at = @At("TAIL"))
     private void wrapResultSlot(int i, Inventory inventory, ContainerLevelAccess containerLevelAccess, CallbackInfo ci) {
-        AbstractContainerMenu menu = (AbstractContainerMenu) (Object) this;
-        if (menu.slots.size() > 2) {
-            Slot orig = menu.slots.get(2);
-            menu.slots.set(2, new DisenchantResultSlot((GrindstoneMenu) (Object) this, orig, this.repairSlots, this.resultSlots, this.access));
+        if (this.slots.size() > 2) {
+            Slot orig = this.slots.get(2);
+            this.slots.set(2, new DisenchantResultSlot((GrindstoneMenu) (Object) this, orig, this.repairSlots, this.resultSlots, this.access));
         }
     }
 
@@ -93,7 +97,7 @@ public abstract class GrindstoneMenuMixin implements DisenchantExtension {
                 if (!bookEnchants.toImmutable().isEmpty()) {
                     EnchantmentHelper.setEnchantments(resultBook, bookEnchants.toImmutable());
                     this.resultSlots.setItem(0, resultBook);
-                    ((AbstractContainerMenu) (Object) this).broadcastChanges();
+                    this.broadcastChanges();
                     ci.cancel();
                     return;
                 }
