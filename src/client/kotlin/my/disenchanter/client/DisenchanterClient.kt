@@ -54,7 +54,6 @@ object DisenchanterClient : ClientModInitializer {
         if (enchants.isEmpty) return
 
         val ext = screen.menu as? DisenchantExtension ?: return
-        // إحداثيات مكان الأزرار على يمين واجهة حجر الجلخ مباشرة
         val x = (screen.width - 176) / 2 + 180
         val y = (screen.height - 166) / 2 + 8
         var i = 0
