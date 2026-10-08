@@ -3,8 +3,8 @@ package my.disenchanter.client
 import my.disenchanter.SelectEnchantPayload
 import my.disenchanter.util.DisenchantExtension
 import net.fabricmc.api.ClientModInitializer
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
+import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents
 import net.fabricmc.fabric.api.client.screen.v1.Screens
 import net.minecraft.ChatFormatting
 import net.minecraft.client.gui.components.Button
@@ -20,28 +20,30 @@ object DisenchanterClient : ClientModInitializer {
     private var activeScreen: GrindstoneScreen? = null
 
     override fun onInitializeClient() {
-        ClientTickEvents.END_CLIENT_TICK.register { client ->
-            val screen = client.screen
+        ScreenEvents.AFTER_INIT.register { _, screen, _, _ ->
             if (screen is GrindstoneScreen) {
-                if (activeScreen != screen) {
-                    activeScreen = screen
-                    lastTopItem = ItemStack.EMPTY
+                activeScreen = screen
+                lastTopItem = ItemStack.EMPTY
+                buttons.clear()
+
+                ScreenEvents.afterTick(screen).register { _ ->
+                    val top = screen.menu.getSlot(0).item
+                    if (!ItemStack.matches(top, lastTopItem)) {
+                        lastTopItem = top.copy()
+                        refreshButtons(screen)
+                    }
+                }
+
+                ScreenEvents.remove(screen).register { _ ->
+                    activeScreen = null
                     buttons.clear()
                 }
-                val top = screen.menu.getSlot(0).item
-                if (!ItemStack.matches(top, lastTopItem)) {
-                    lastTopItem = top.copy()
-                    refreshButtons(screen)
-                }
-            } else {
-                activeScreen = null
-                buttons.clear()
             }
         }
     }
 
     private fun refreshButtons(screen: GrindstoneScreen) {
-        val screenButtons = Screens.getButtons(screen)
+        val screenButtons = Screens.getWidgets(screen)
         for (btn in buttons) {
             screenButtons.remove(btn)
         }
