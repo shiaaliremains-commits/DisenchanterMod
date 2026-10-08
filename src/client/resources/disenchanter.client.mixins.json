@@ -2,9 +2,7 @@
   "required": true,
   "package": "my.disenchanter.client.mixin",
   "compatibilityLevel": "JAVA_21",
-  "client": [
-    "GrindstoneScreenMixin"
-  ],
+  "client": [],
   "injectors": {
     "defaultRequire": 1
   }
