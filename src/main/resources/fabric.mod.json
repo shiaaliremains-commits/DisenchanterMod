@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "id": "disenchanter",
+  "version": "${version}",
+  "name": "Disenchanter",
+  "description": "Extract specific enchantments from tools into books using the Grindstone with a vanilla UI.",
+  "authors": [
+    "shiaaliremains-commits"
+  ],
+  "contact": {
+    "homepage": "https://github.com/shiaaliremains-commits/DisenchanterMod",
+    "sources": "https://github.com/shiaaliremains-commits/DisenchanterMod"
+  },
+  "license": "CC0-1.0",
+  "icon": "assets/disenchanter/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      {
+        "value": "my.disenchanter.Disenchanter",
+        "adapter": "kotlin"
+      }
+    ],
+    "client": [
+      {
+        "value": "my.disenchanter.client.DisenchanterClient",
+        "adapter": "kotlin"
+      }
+    ],
+    "fabric-datagen": [
+      {
+        "value": "my.disenchanter.client.DisenchanterDataGenerator",
+        "adapter": "kotlin"
+      }
+    ]
+  },
+  "mixins": [
+    "disenchanter.mixins.json",
+    {
+      "config": "disenchanter.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~26.3",
+    "java": ">=25",
+    "fabric-api": "*",
+    "fabric-language-kotlin": "*"
+  }
+}
