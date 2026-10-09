@@ -3,6 +3,7 @@ package my.disenchanter.mixin;
 import my.disenchanter.util.DisenchantExtension;
 import my.disenchanter.util.DisenchantResultSlot;
 import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -51,13 +52,20 @@ public abstract class GrindstoneMenuMixin extends AbstractContainerMenu implemen
         } else {
             this.disenchanter$selected.add(enchantId);
         }
-        // استدعاء الدالة العامة لتحديث النتيجة بدون مشاكل private
         this.slotsChanged(this.repairSlots);
     }
 
     @Override
     public boolean disenchanter$isExtracting() {
         return this.disenchanter$isExtracting;
+    }
+
+    @Unique
+    private static ItemEnchantments disenchanter$getEnchants(ItemStack stack) {
+        if (stack.isEmpty()) return ItemEnchantments.EMPTY;
+        ItemEnchantments stored = stack.get(DataComponents.STORED_ENCHANTMENTS);
+        if (stored != null && !stored.isEmpty()) return stored;
+        return stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
     }
 
     @Inject(method = "<init>(ILnet/minecraft/world/entity/player/Inventory;Lnet/minecraft/world/inventory/ContainerLevelAccess;)V", at = @At("TAIL"))
@@ -73,8 +81,9 @@ public abstract class GrindstoneMenuMixin extends AbstractContainerMenu implemen
         ItemStack top = this.repairSlots.getItem(0);
         ItemStack bottom = this.repairSlots.getItem(1);
 
-        if (!top.isEmpty() && !bottom.isEmpty() && (bottom.is(Items.BOOK) || bottom.is(Items.ENCHANTED_BOOK))) {
-            ItemEnchantments enchants = EnchantmentHelper.getEnchantmentsForCrafting(top);
+        if (!top.isEmpty() && !bottom.isEmpty()) {
+            ItemEnchantments enchants = disenchanter$getEnchants(top);
+
             if (!enchants.isEmpty()) {
                 this.disenchanter$isExtracting = true;
 
@@ -85,18 +94,40 @@ public abstract class GrindstoneMenuMixin extends AbstractContainerMenu implemen
                     }
                 }
 
-                ItemStack resultBook = new ItemStack(Items.ENCHANTED_BOOK);
-                ItemEnchantments.Mutable bookEnchants = new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);
+                // الحالة 1: الغرض السفلي كتاب (عادي أو مسحور) -> استخراج التطوير لكتاب
+                if (bottom.is(Items.BOOK) || bottom.is(Items.ENCHANTED_BOOK)) {
+                    ItemStack resultBook = new ItemStack(Items.ENCHANTED_BOOK);
+                    ItemEnchantments.Mutable bookEnchants = new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);
 
-                for (Holder<Enchantment> holder : enchants.keySet()) {
-                    if (this.disenchanter$selected.contains(holder.getRegisteredName())) {
-                        bookEnchants.set(holder, enchants.getLevel(holder));
+                    for (Holder<Enchantment> holder : enchants.keySet()) {
+                        if (this.disenchanter$selected.contains(holder.getRegisteredName())) {
+                            bookEnchants.set(holder, enchants.getLevel(holder));
+                        }
+                    }
+
+                    if (!bookEnchants.toImmutable().isEmpty()) {
+                        EnchantmentHelper.setEnchantments(resultBook, bookEnchants.toImmutable());
+                        this.resultSlots.setItem(0, resultBook);
+                        this.broadcastChanges();
+                        ci.cancel();
+                        return;
                     }
                 }
+                // الحالة 2: الغرض العلوي كتاب مسحور، والغرض السفلي أداة/درع -> نقل التطوير للسلاح
+                else if (top.is(Items.ENCHANTED_BOOK)) {
+                    ItemStack resultItem = bottom.copy();
+                    resultItem.setCount(1);
+                    ItemEnchantments bottomEnchants = disenchanter$getEnchants(bottom);
+                    ItemEnchantments.Mutable newEnchants = new ItemEnchantments.Mutable(bottomEnchants);
 
-                if (!bookEnchants.toImmutable().isEmpty()) {
-                    EnchantmentHelper.setEnchantments(resultBook, bookEnchants.toImmutable());
-                    this.resultSlots.setItem(0, resultBook);
+                    for (Holder<Enchantment> holder : enchants.keySet()) {
+                        if (this.disenchanter$selected.contains(holder.getRegisteredName())) {
+                            newEnchants.set(holder, enchants.getLevel(holder));
+                        }
+                    }
+
+                    EnchantmentHelper.setEnchantments(resultItem, newEnchants.toImmutable());
+                    this.resultSlots.setItem(0, resultItem);
                     this.broadcastChanges();
                     ci.cancel();
                     return;

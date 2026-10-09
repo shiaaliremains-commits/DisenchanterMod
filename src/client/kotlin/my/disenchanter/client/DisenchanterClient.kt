@@ -11,10 +11,12 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.components.Button
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.client.gui.screens.inventory.GrindstoneScreen
+import net.minecraft.core.Holder
+import net.minecraft.core.component.DataComponents
 import net.minecraft.network.chat.Component
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.enchantment.Enchantment
-import net.minecraft.world.item.enchantment.EnchantmentHelper
+import net.minecraft.world.item.enchantment.ItemEnchantments
 
 object DisenchanterClient : ClientModInitializer {
     private var lastTopItem: ItemStack = ItemStack.EMPTY
@@ -58,6 +60,14 @@ object DisenchanterClient : ClientModInitializer {
         return runCatching { field?.get(mc) as? Screen }.getOrNull()
     }
 
+    // قراءة التطويرات للأدوات والكتب المسحورة معاً
+    private fun getEnchantments(stack: ItemStack): ItemEnchantments {
+        if (stack.isEmpty) return ItemEnchantments.EMPTY
+        val stored = stack.get(DataComponents.STORED_ENCHANTMENTS)
+        if (stored != null && !stored.isEmpty) return stored
+        return stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY)
+    }
+
     private fun refreshButtons(screen: GrindstoneScreen) {
         val invoker = screen as? ScreenInvoker ?: return
         for (btn in buttons) {
@@ -68,12 +78,19 @@ object DisenchanterClient : ClientModInitializer {
         val top = screen.menu.getSlot(0).item
         if (top.isEmpty) return
 
-        val enchants = EnchantmentHelper.getEnchantmentsForCrafting(top)
-        if (enchants.isEmpty()) return
+        val enchants = getEnchantments(top)
+        if (enchants.isEmpty) return
 
         val ext = screen.menu as? DisenchantExtension ?: return
-        val x = (screen.width - 176) / 2 + 180
-        val y = (screen.height - 166) / 2 + 8
+
+        // حساب مكان الأزرار بحيث تظهر دائماً داخل الشاشة بالهاتف
+        val leftPos = (screen.width - 176) / 2
+        val topPos = (screen.height - 166) / 2
+        val spaceRight = screen.width - (leftPos + 176)
+
+        val btnW = 110
+        val x = if (spaceRight >= btnW + 6) leftPos + 180 else maxOf(4, leftPos - btnW - 4)
+        val y = topPos + 8
         var i = 0
 
         for (holder in enchants.keySet()) {
@@ -89,7 +106,7 @@ object DisenchanterClient : ClientModInitializer {
                 ext.`disenchanter$toggle`(id)
                 ClientPlayNetworking.send(SelectEnchantPayload(id))
                 refreshButtons(screen)
-            }.bounds(x, y + (i * 20), 120, 18).build()
+            }.bounds(x, y + (i * 20), btnW, 18).build()
 
             buttons.add(btn)
             invoker.invokeAddRenderableWidget(btn)
