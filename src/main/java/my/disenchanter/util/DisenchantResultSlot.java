@@ -1,6 +1,7 @@
 package my.disenchanter.util;
 
 import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.Container;
@@ -40,12 +41,14 @@ public class DisenchantResultSlot extends Slot {
             ItemStack top = this.repairSlots.getItem(0);
             ItemStack bottom = this.repairSlots.getItem(1);
 
-            // استهلاك كتاب واحد فقط من الستاك
-            bottom.shrink(1);
-            this.repairSlots.setItem(1, bottom.isEmpty() ? ItemStack.EMPTY : bottom);
+            // استهلاك كتاب واحد فقط من الستاك بأمان
+            if (!bottom.isEmpty()) {
+                bottom.shrink(1);
+                this.repairSlots.setItem(1, bottom.isEmpty() ? ItemStack.EMPTY : bottom);
+            }
 
-            // إزالة التطويرات المختارة فقط من الأداة
-            ItemEnchantments enchants = EnchantmentHelper.getEnchantmentsForCrafting(top);
+            // إزالة التطويرات المختارة فقط من الغرض العلوي
+            ItemEnchantments enchants = getEnchants(top);
             ItemEnchantments.Mutable remaining = new ItemEnchantments.Mutable(enchants);
 
             for (Holder<Enchantment> holder : enchants.keySet()) {
@@ -61,7 +64,11 @@ public class DisenchantResultSlot extends Slot {
             if (remainingEnchants.isEmpty() && updatedTop.is(Items.ENCHANTED_BOOK)) {
                 updatedTop = new ItemStack(Items.BOOK);
             } else {
-                EnchantmentHelper.setEnchantments(updatedTop, remainingEnchants);
+                if (updatedTop.is(Items.ENCHANTED_BOOK)) {
+                    updatedTop.set(DataComponents.STORED_ENCHANTMENTS, remainingEnchants);
+                } else {
+                    EnchantmentHelper.setEnchantments(updatedTop, remainingEnchants);
+                }
             }
 
             this.repairSlots.setItem(0, updatedTop);
@@ -70,5 +77,12 @@ public class DisenchantResultSlot extends Slot {
         } else {
             this.originalSlot.onTake(player, resultStack);
         }
+    }
+
+    private static ItemEnchantments getEnchants(ItemStack stack) {
+        if (stack.isEmpty()) return ItemEnchantments.EMPTY;
+        ItemEnchantments stored = stack.get(DataComponents.STORED_ENCHANTMENTS);
+        if (stored != null && !stored.isEmpty()) return stored;
+        return stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
     }
 }

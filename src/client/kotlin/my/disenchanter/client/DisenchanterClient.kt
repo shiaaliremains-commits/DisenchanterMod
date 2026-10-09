@@ -13,29 +13,23 @@ import net.minecraft.core.Holder
 import net.minecraft.core.component.DataComponents
 import net.minecraft.network.chat.Component
 import net.minecraft.world.item.ItemStack
-import net.minecraft.world.item.Items
 import net.minecraft.world.item.enchantment.Enchantment
 import net.minecraft.world.item.enchantment.ItemEnchantments
 
 object DisenchanterClient : ClientModInitializer {
 
     override fun onInitializeClient() {
-        // الربط المباشر مع واجهة حجر الجلخ فور فتحها
         ScreenEvents.AFTER_INIT.register { client, screen, scaledWidth, scaledHeight ->
             if (screen is GrindstoneScreen) {
                 var lastTop: ItemStack = ItemStack.EMPTY
-                var lastBottom: ItemStack = ItemStack.EMPTY
                 val buttons = ArrayList<Button>()
 
                 ScreenEvents.afterTick(screen).register { s ->
                     val gScreen = s as GrindstoneScreen
                     val top = gScreen.menu.getSlot(0).item
-                    val bottom = gScreen.menu.getSlot(1).item
 
-                    // تحديث الأزرار فور تغيير أو وضع أي غرض بالخانات
-                    if (!ItemStack.matches(top, lastTop) || !ItemStack.matches(bottom, lastBottom)) {
+                    if (!ItemStack.matches(top, lastTop)) {
                         lastTop = top.copy()
-                        lastBottom = bottom.copy()
 
                         val invoker = gScreen as? ScreenInvoker
                         if (invoker != null) {
@@ -48,7 +42,7 @@ object DisenchanterClient : ClientModInitializer {
 
                         val ext = gScreen.menu as? DisenchantExtension ?: return@register
 
-                        // إحداثيات مدروسة للهاتف تضمن ظهور الأزرار دائماً
+                        // إحداثيات مكان الأزرار بجانب واجهة حجر الجلخ
                         val leftPos = (gScreen.width - 176) / 2
                         val topPos = (gScreen.height - 166) / 2
                         val spaceRight = gScreen.width - (leftPos + 176)
@@ -58,11 +52,6 @@ object DisenchanterClient : ClientModInitializer {
                         var i = 0
 
                         for (holder in enchants.keySet()) {
-                            // إذا الخانة السفلية أداة/سيف، نعرض فقط التطويرات المسموحة له
-                            if (!bottom.isEmpty && !bottom.`is`(Items.BOOK) && !bottom.`is`(Items.ENCHANTED_BOOK)) {
-                                if (!holder.value().canEnchant(bottom)) continue
-                            }
-
                             val id = runCatching { holder.registeredName }.getOrNull() ?: holder.toString()
                             val level = enchants.getLevel(holder)
                             val selected = ext.`disenchanter$getSelected`().contains(id)
@@ -74,7 +63,7 @@ object DisenchanterClient : ClientModInitializer {
                             val btn = Button.builder(text) { _ ->
                                 ext.`disenchanter$toggle`(id)
                                 ClientPlayNetworking.send(SelectEnchantPayload(id))
-                                lastTop = ItemStack.EMPTY // تحديث فوري
+                                lastTop = ItemStack.EMPTY
                             }.bounds(x, y + (i * 20), btnW, 18).build()
 
                             buttons.add(btn)

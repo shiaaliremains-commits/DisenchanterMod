@@ -27,15 +27,11 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Mixin(GrindstoneMenu.class)
-public abstract class GrindstoneMenuMixin extends AbstractContainerMenu implements DisenchantExtension {
+public abstract class GrindstoneMenuMixin implements DisenchantExtension {
 
     @Shadow @Final private Container repairSlots;
     @Shadow @Final private Container resultSlots;
     @Shadow @Final private ContainerLevelAccess access;
-
-    protected GrindstoneMenuMixin() {
-        super(null, 0);
-    }
 
     @Unique private final Set<String> disenchanter$selected = new HashSet<>();
     @Unique private boolean disenchanter$isExtracting = false;
@@ -52,7 +48,7 @@ public abstract class GrindstoneMenuMixin extends AbstractContainerMenu implemen
         } else {
             this.disenchanter$selected.add(enchantId);
         }
-        this.slotsChanged(this.repairSlots);
+        ((AbstractContainerMenu) (Object) this).slotsChanged(this.repairSlots);
     }
 
     @Override
@@ -69,26 +65,35 @@ public abstract class GrindstoneMenuMixin extends AbstractContainerMenu implemen
     }
 
     @Inject(method = "<init>(ILnet/minecraft/world/entity/player/Inventory;Lnet/minecraft/world/inventory/ContainerLevelAccess;)V", at = @At("TAIL"))
-    private void uncapGrindstoneSlots(int i, Inventory inventory, ContainerLevelAccess containerLevelAccess, CallbackInfo ci) {
-        Slot slot0 = this.slots.get(0);
-        this.slots.set(0, new Slot(this.repairSlots, 0, slot0.x, slot0.y) {
+    private void setupSlots(int i, Inventory inventory, ContainerLevelAccess containerLevelAccess, CallbackInfo ci) {
+        AbstractContainerMenu menu = (AbstractContainerMenu) (Object) this;
+
+        // تعديل الخانة العلوية والسفلية لتقبل الكتب مع الحفاظ على فهرس الشفت كليك
+        Slot slot0 = menu.slots.get(0);
+        Slot customSlot0 = new Slot(this.repairSlots, 0, slot0.x, slot0.y) {
             @Override
             public boolean mayPlace(ItemStack stack) {
                 return true;
             }
-        });
+        };
+        customSlot0.index = 0;
+        menu.slots.set(0, customSlot0);
 
-        Slot slot1 = this.slots.get(1);
-        this.slots.set(1, new Slot(this.repairSlots, 1, slot1.x, slot1.y) {
+        Slot slot1 = menu.slots.get(1);
+        Slot customSlot1 = new Slot(this.repairSlots, 1, slot1.x, slot1.y) {
             @Override
             public boolean mayPlace(ItemStack stack) {
                 return true;
             }
-        });
+        };
+        customSlot1.index = 1;
+        menu.slots.set(1, customSlot1);
 
-        if (this.slots.size() > 2) {
-            Slot orig = this.slots.get(2);
-            this.slots.set(2, new DisenchantResultSlot((GrindstoneMenu) (Object) this, orig, this.repairSlots, this.resultSlots, this.access));
+        if (menu.slots.size() > 2) {
+            Slot orig = menu.slots.get(2);
+            DisenchantResultSlot customSlot2 = new DisenchantResultSlot((GrindstoneMenu) (Object) this, orig, this.repairSlots, this.resultSlots, this.access);
+            customSlot2.index = 2;
+            menu.slots.set(2, customSlot2);
         }
     }
 
@@ -97,74 +102,34 @@ public abstract class GrindstoneMenuMixin extends AbstractContainerMenu implemen
         ItemStack top = this.repairSlots.getItem(0);
         ItemStack bottom = this.repairSlots.getItem(1);
 
-        if (!top.isEmpty() && !bottom.isEmpty()) {
+        if (!top.isEmpty() && !bottom.isEmpty() && (bottom.is(Items.BOOK) || bottom.is(Items.ENCHANTED_BOOK))) {
             ItemEnchantments enchants = disenchanter$getEnchants(top);
 
             if (!enchants.isEmpty()) {
                 this.disenchanter$isExtracting = true;
 
-                // 1. استخراج أو دمج مع كتاب (الخانة السفلية كتاب عادي أو كتاب مسحور)
-                if (bottom.is(Items.BOOK) || bottom.is(Items.ENCHANTED_BOOK)) {
-                    if (this.disenchanter$selected.isEmpty()) {
-                        for (Holder<Enchantment> holder : enchants.keySet()) {
-                            this.disenchanter$selected.add(holder.getRegisteredName());
-                            break;
-                        }
-                    }
-
-                    ItemStack resultBook = new ItemStack(Items.ENCHANTED_BOOK);
-                    // قراءة تطويرات الكتاب السفلي القديمة لدمجها وعدم حذفها
-                    ItemEnchantments bottomEnchants = disenchanter$getEnchants(bottom);
-                    ItemEnchantments.Mutable bookEnchants = new ItemEnchantments.Mutable(bottomEnchants);
-
+                if (this.disenchanter$selected.isEmpty()) {
                     for (Holder<Enchantment> holder : enchants.keySet()) {
-                        if (this.disenchanter$selected.contains(holder.getRegisteredName())) {
-                            int topLvl = enchants.getLevel(holder);
-                            int botLvl = bookEnchants.getLevel(holder);
-                            // ترقية اللفل إذا كانت نفس التطويرة مكررة في الكتابين
-                            int finalLvl = (topLvl == botLvl && topLvl < holder.value().getMaxLevel()) ? topLvl + 1 : Math.max(topLvl, botLvl);
-                            bookEnchants.set(holder, finalLvl);
-                        }
-                    }
-
-                    if (!bookEnchants.toImmutable().isEmpty()) {
-                        EnchantmentHelper.setEnchantments(resultBook, bookEnchants.toImmutable());
-                        this.resultSlots.setItem(0, resultBook);
-                        this.broadcastChanges();
-                        ci.cancel();
-                        return;
+                        this.disenchanter$selected.add(holder.getRegisteredName());
+                        break;
                     }
                 }
-                // 2. نقل التطوير لأداة (الخانة السفلية سلاح أو درع - فقط التطويرات المتوافقة معه)
-                else if (top.is(Items.ENCHANTED_BOOK)) {
-                    ItemStack resultItem = bottom.copy();
-                    resultItem.setCount(1);
-                    ItemEnchantments bottomEnchants = disenchanter$getEnchants(bottom);
-                    ItemEnchantments.Mutable newEnchants = new ItemEnchantments.Mutable(bottomEnchants);
-                    boolean addedAny = false;
 
-                    for (Holder<Enchantment> holder : enchants.keySet()) {
-                        if (holder.value().canEnchant(resultItem)) {
-                            if (this.disenchanter$selected.isEmpty()) {
-                                this.disenchanter$selected.add(holder.getRegisteredName());
-                            }
-                            if (this.disenchanter$selected.contains(holder.getRegisteredName())) {
-                                int topLvl = enchants.getLevel(holder);
-                                int botLvl = newEnchants.getLevel(holder);
-                                int finalLvl = (topLvl == botLvl && topLvl < holder.value().getMaxLevel()) ? topLvl + 1 : Math.max(topLvl, botLvl);
-                                newEnchants.set(holder, finalLvl);
-                                addedAny = true;
-                            }
-                        }
-                    }
+                ItemStack resultBook = new ItemStack(Items.ENCHANTED_BOOK);
+                ItemEnchantments.Mutable bookEnchants = new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);
 
-                    if (addedAny) {
-                        EnchantmentHelper.setEnchantments(resultItem, newEnchants.toImmutable());
-                        this.resultSlots.setItem(0, resultItem);
-                        this.broadcastChanges();
-                        ci.cancel();
-                        return;
+                for (Holder<Enchantment> holder : enchants.keySet()) {
+                    if (this.disenchanter$selected.contains(holder.getRegisteredName())) {
+                        bookEnchants.set(holder, enchants.getLevel(holder));
                     }
+                }
+
+                if (!bookEnchants.toImmutable().isEmpty()) {
+                    EnchantmentHelper.setEnchantments(resultBook, bookEnchants.toImmutable());
+                    this.resultSlots.setItem(0, resultBook);
+                    ((AbstractContainerMenu) (Object) this).broadcastChanges();
+                    ci.cancel();
+                    return;
                 }
             }
         }
