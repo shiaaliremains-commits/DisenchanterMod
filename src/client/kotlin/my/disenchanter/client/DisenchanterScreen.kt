@@ -22,11 +22,6 @@ class DisenchanterScreen(
     private val buttons = ArrayList<Button>()
     private var lastTop = ItemStack.EMPTY
 
-    init {
-        imageWidth = 176
-        imageHeight = 170
-    }
-
     override fun containerTick() {
         super.containerTick()
         val top = menu.inputContainer.getItem(0)
@@ -82,7 +77,7 @@ class DisenchanterScreen(
         graphics.fill(leftPos, topPos, leftPos + imageWidth, topPos + imageHeight, bg)
         graphics.fill(leftPos, topPos, leftPos + imageWidth, topPos + 1, border)
         graphics.fill(leftPos, topPos + imageHeight - 1, leftPos + imageWidth, topPos + imageHeight, border)
-        graphics.fill(leftPos, topPos, leftPos + 1, topPos + imageHeight, border)
+        graphics.fill(leftPos, topPos + 1, leftPos + imageHeight, border)
         graphics.fill(leftPos + imageWidth - 1, topPos, leftPos + imageWidth, topPos + imageHeight, border)
 
         // عنوان الطاولة
@@ -102,11 +97,7 @@ class DisenchanterScreen(
         g.fill(x, y, x + 18, y + 18, 0xAA080C14.toInt())
         g.fill(x, y, x + 18, y + 1, color)
         g.fill(x, y + 17, x + 18, y + 18, color)
-        g.fill(x, y, x + 1, y + 18, color)
+        g.fill(x, y + 1, y + 18, color)
         g.fill(x + 17, y, x + 18, y + 18, color)
-    }
-
-    override fun renderLabels(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int) {
-        // لا نحتاج عناوين مكررة
     }
 }
