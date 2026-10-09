@@ -48,9 +48,11 @@ object DisenchanterBlocks {
         Registry.register(BuiltInRegistries.ITEM, ID, TABLE_ITEM)
         Registry.register(BuiltInRegistries.MENU, ID, MENU_TYPE)
 
-        // إضافة البلوكة لخانة الـ Creative والبحث
-        ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS).register { entries ->
-            entries.accept(TABLE_ITEM)
+        // إضافة البلوكة لتبويب الكرييتيف والبحث بأسلوب آمن
+        runCatching {
+            ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS).register { entries ->
+                entries.accept(TABLE_ITEM)
+            }
         }
     }
 }
