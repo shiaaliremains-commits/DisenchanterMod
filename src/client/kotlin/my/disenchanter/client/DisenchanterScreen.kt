@@ -24,13 +24,6 @@ class DisenchanterScreen(
     private val buttons = ArrayList<Button>()
     private var lastTop = ItemStack.EMPTY
 
-    init {
-        imageWidth = 176
-        imageHeight = 166
-        inventoryLabelY = 72
-        titleLabelY = 6
-    }
-
     override fun containerTick() {
         super.containerTick()
         val top = menu.inputContainer.getItem(0)
@@ -60,7 +53,7 @@ class DisenchanterScreen(
             val selected = menu.selectedEnchants.contains(id)
 
             val text = Component.literal(if (selected) "[✔] " else "[  ]")
-                .withStyle(if (selected) ChatFormatting.GREEN else ChatFormatting.DARK_GRAY)
+                .withStyle(if (selected) ChatFormatting.GREEN else ChatFormatting.GRAY)
                 .append(Enchantment.getFullname(h, lvl))
 
             val btn = Button.builder(text) { _ ->
@@ -76,8 +69,17 @@ class DisenchanterScreen(
     }
 
     override fun extractRenderState(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, delta: Float) {
-        // رسم واجهة ماينكرافت الرمادية الأصلية الرسمية 100%
-        graphics.blit(CONTAINER_TEXTURE, leftPos, topPos, 0, 0, imageWidth, imageHeight)
+        // رسم واجهة ماينكرافت الرمادية الأصلية بالصيغة الرسمية الدقيقة لإصدار 26.3
+        val u1 = imageWidth / 256.0f
+        val v1 = imageHeight / 256.0f
+        graphics.blit(
+            CONTAINER_TEXTURE,
+            leftPos, topPos,
+            leftPos + imageWidth, topPos + imageHeight,
+            0.0f, u1,
+            0.0f, v1
+        )
+
         super.extractRenderState(graphics, mouseX, mouseY, delta)
     }
 }
