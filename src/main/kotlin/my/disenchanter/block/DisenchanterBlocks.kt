@@ -5,8 +5,10 @@ import my.disenchanter.menu.DisenchanterMenu
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Registry
 import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.core.registries.Registries
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.Identifier
+import net.minecraft.resources.ResourceKey
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.MenuProvider
 import net.minecraft.world.SimpleMenuProvider
@@ -28,13 +30,21 @@ import net.minecraft.world.phys.BlockHitResult
 object DisenchanterBlocks {
     val ID = Identifier.fromNamespaceAndPath(Disenchanter.MOD_ID, "disenchanter_table")
 
+    // إنشاء مفاتيح التعريف الإجبارية لإصدار 26.3
+    val BLOCK_KEY: ResourceKey<Block> = ResourceKey.create(Registries.BLOCK, ID)
+    val ITEM_KEY: ResourceKey<Item> = ResourceKey.create(Registries.ITEM, ID)
+
     val TABLE_BLOCK = DisenchanterTableBlock(
         BlockBehaviour.Properties.ofFullCopy(Blocks.ENCHANTING_TABLE)
+            .setId(BLOCK_KEY) // شرط ماينكرافت 26.3 الإجباري
             .strength(4.0f, 1200.0f)
             .sound(SoundType.DEEPSLATE)
     )
 
-    val TABLE_ITEM = BlockItem(TABLE_BLOCK, Item.Properties())
+    val TABLE_ITEM = BlockItem(
+        TABLE_BLOCK,
+        Item.Properties().setId(ITEM_KEY)
+    )
 
     val MENU_TYPE: MenuType<DisenchanterMenu> = MenuType(
         { id, inv -> DisenchanterMenu(id, inv) },
@@ -42,8 +52,8 @@ object DisenchanterBlocks {
     )
 
     fun register() {
-        Registry.register(BuiltInRegistries.BLOCK, ID, TABLE_BLOCK)
-        Registry.register(BuiltInRegistries.ITEM, ID, TABLE_ITEM)
+        Registry.register(BuiltInRegistries.BLOCK, BLOCK_KEY, TABLE_BLOCK)
+        Registry.register(BuiltInRegistries.ITEM, ITEM_KEY, TABLE_ITEM)
         Registry.register(BuiltInRegistries.MENU, ID, MENU_TYPE)
     }
 }
