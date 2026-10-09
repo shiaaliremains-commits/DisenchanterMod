@@ -2,7 +2,6 @@ package my.disenchanter.block
 
 import my.disenchanter.Disenchanter
 import my.disenchanter.menu.DisenchanterMenu
-import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Registry
 import net.minecraft.core.registries.BuiltInRegistries
@@ -17,7 +16,6 @@ import net.minecraft.world.flag.FeatureFlags
 import net.minecraft.world.inventory.ContainerLevelAccess
 import net.minecraft.world.inventory.MenuType
 import net.minecraft.world.item.BlockItem
-import net.minecraft.world.item.CreativeModeTabs
 import net.minecraft.world.item.Item
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
@@ -47,13 +45,6 @@ object DisenchanterBlocks {
         Registry.register(BuiltInRegistries.BLOCK, ID, TABLE_BLOCK)
         Registry.register(BuiltInRegistries.ITEM, ID, TABLE_ITEM)
         Registry.register(BuiltInRegistries.MENU, ID, MENU_TYPE)
-
-        // إضافة البلوكة لتبويب الكرييتيف والبحث بأسلوب آمن
-        runCatching {
-            ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS).register { entries ->
-                entries.accept(TABLE_ITEM)
-            }
-        }
     }
 }
 
