@@ -2,10 +2,6 @@
   "required": true,
   "package": "my.disenchanter.client.mixin",
   "compatibilityLevel": "JAVA_21",
-  "client": [
-    "ScreenInvoker"
-  ],
-  "injectors": {
-    "defaultRequire": 1
-  }
+  "client": [],
+  "injectors": { "defaultRequire": 1 }
 }

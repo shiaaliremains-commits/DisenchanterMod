@@ -3,7 +3,7 @@
   "id": "disenchanter",
   "version": "${version}",
   "name": "Disenchanter",
-  "description": "Extract specific enchantments from tools into books using the Grindstone with a vanilla UI.",
+  "description": "Magical custom Disenchanter Table to extract, separate, and combine enchantments with AAA dark UI.",
   "authors": [
     "shiaaliremains-commits"
   ],
@@ -24,12 +24,6 @@
     "client": [
       {
         "value": "my.disenchanter.client.DisenchanterClient",
-        "adapter": "kotlin"
-      }
-    ],
-    "fabric-datagen": [
-      {
-        "value": "my.disenchanter.client.DisenchanterDataGenerator",
         "adapter": "kotlin"
       }
     ]
