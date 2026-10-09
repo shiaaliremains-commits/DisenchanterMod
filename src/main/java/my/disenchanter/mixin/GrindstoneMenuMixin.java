@@ -68,14 +68,13 @@ public abstract class GrindstoneMenuMixin extends AbstractContainerMenu implemen
         return stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
     }
 
-    // فك قيود الخانات للسماح بوضع الكتب العادية والأدوات
     @Inject(method = "<init>(ILnet/minecraft/world/entity/player/Inventory;Lnet/minecraft/world/inventory/ContainerLevelAccess;)V", at = @At("TAIL"))
     private void uncapGrindstoneSlots(int i, Inventory inventory, ContainerLevelAccess containerLevelAccess, CallbackInfo ci) {
         Slot slot0 = this.slots.get(0);
         this.slots.set(0, new Slot(this.repairSlots, 0, slot0.x, slot0.y) {
             @Override
             public boolean mayPlace(ItemStack stack) {
-                return true; // يقبل أي أداة أو كتاب
+                return true;
             }
         });
 
@@ -83,7 +82,7 @@ public abstract class GrindstoneMenuMixin extends AbstractContainerMenu implemen
         this.slots.set(1, new Slot(this.repairSlots, 1, slot1.x, slot1.y) {
             @Override
             public boolean mayPlace(ItemStack stack) {
-                return true; // يقبل الكتب العادية والأدوات
+                return true;
             }
         });
 
@@ -104,7 +103,7 @@ public abstract class GrindstoneMenuMixin extends AbstractContainerMenu implemen
             if (!enchants.isEmpty()) {
                 this.disenchanter$isExtracting = true;
 
-                // 1. استخراج لكتاب (الخانة السفلية كتاب عادي أو مسحور)
+                // 1. استخراج أو دمج مع كتاب (الخانة السفلية كتاب عادي أو كتاب مسحور)
                 if (bottom.is(Items.BOOK) || bottom.is(Items.ENCHANTED_BOOK)) {
                     if (this.disenchanter$selected.isEmpty()) {
                         for (Holder<Enchantment> holder : enchants.keySet()) {
@@ -114,11 +113,17 @@ public abstract class GrindstoneMenuMixin extends AbstractContainerMenu implemen
                     }
 
                     ItemStack resultBook = new ItemStack(Items.ENCHANTED_BOOK);
-                    ItemEnchantments.Mutable bookEnchants = new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);
+                    // قراءة تطويرات الكتاب السفلي القديمة لدمجها وعدم حذفها
+                    ItemEnchantments bottomEnchants = disenchanter$getEnchants(bottom);
+                    ItemEnchantments.Mutable bookEnchants = new ItemEnchantments.Mutable(bottomEnchants);
 
                     for (Holder<Enchantment> holder : enchants.keySet()) {
                         if (this.disenchanter$selected.contains(holder.getRegisteredName())) {
-                            bookEnchants.set(holder, enchants.getLevel(holder));
+                            int topLvl = enchants.getLevel(holder);
+                            int botLvl = bookEnchants.getLevel(holder);
+                            // ترقية اللفل إذا كانت نفس التطويرة مكررة في الكتابين
+                            int finalLvl = (topLvl == botLvl && topLvl < holder.value().getMaxLevel()) ? topLvl + 1 : Math.max(topLvl, botLvl);
+                            bookEnchants.set(holder, finalLvl);
                         }
                     }
 
@@ -139,13 +144,15 @@ public abstract class GrindstoneMenuMixin extends AbstractContainerMenu implemen
                     boolean addedAny = false;
 
                     for (Holder<Enchantment> holder : enchants.keySet()) {
-                        // فلترة: التأكد أن التطويرة مسموحة وممكنة للأداة السفلية حصراً
                         if (holder.value().canEnchant(resultItem)) {
                             if (this.disenchanter$selected.isEmpty()) {
                                 this.disenchanter$selected.add(holder.getRegisteredName());
                             }
                             if (this.disenchanter$selected.contains(holder.getRegisteredName())) {
-                                newEnchants.set(holder, enchants.getLevel(holder));
+                                int topLvl = enchants.getLevel(holder);
+                                int botLvl = newEnchants.getLevel(holder);
+                                int finalLvl = (topLvl == botLvl && topLvl < holder.value().getMaxLevel()) ? topLvl + 1 : Math.max(topLvl, botLvl);
+                                newEnchants.set(holder, finalLvl);
                                 addedAny = true;
                             }
                         }
