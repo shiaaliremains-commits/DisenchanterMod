@@ -36,14 +36,11 @@ class DisenchanterMenu(
     val selectedEnchants = HashSet<String>()
 
     init {
-        // الخانة 0: الأداة العلوية
-        addSlot(Slot(inputContainer, 0, 32, 22))
+        // إحداثيات الخانات المتطابقة 100% مع تكسشر ماينكرافت الأصلي
+        addSlot(Slot(inputContainer, 0, 49, 19))
+        addSlot(Slot(inputContainer, 1, 49, 40))
 
-        // الخانة 1: الكتاب أو المستقبل السفلي
-        addSlot(Slot(inputContainer, 1, 32, 54))
-
-        // الخانة 2: خانة الاستلام المخصصة
-        addSlot(object : Slot(resultContainer, 0, 102, 38) {
+        addSlot(object : Slot(resultContainer, 0, 129, 34) {
             override fun mayPlace(stack: ItemStack) = false
 
             override fun onTake(player: Player, stack: ItemStack) {
@@ -80,14 +77,15 @@ class DisenchanterMenu(
             }
         })
 
-        // خانات حقيبة اللاعب
+        // شبكة خانات حقيبة اللاعب الأصلية (3 صفوف × 9 أعمدة)
         for (row in 0..2) {
             for (col in 0..8) {
-                addSlot(Slot(playerInventory, col + row * 9 + 9, 8 + col * 18, 88 + row * 18))
+                addSlot(Slot(playerInventory, col + row * 9 + 9, 8 + col * 18, 84 + row * 18))
             }
         }
+        // خانات الشوتبول السفلية (9 خانات)
         for (col in 0..8) {
-            addSlot(Slot(playerInventory, col, 8 + col * 18, 146))
+            addSlot(Slot(playerInventory, col, 8 + col * 18, 142))
         }
     }
 

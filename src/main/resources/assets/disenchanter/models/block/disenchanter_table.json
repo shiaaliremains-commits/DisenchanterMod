@@ -1,5 +1,5 @@
 {
-  "parent": "block/cube",
+  "parent": "minecraft:block/cube",
   "textures": {
     "particle": "minecraft:block/crying_obsidian",
     "down": "minecraft:block/crying_obsidian",

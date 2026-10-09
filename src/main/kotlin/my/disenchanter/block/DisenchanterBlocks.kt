@@ -18,6 +18,7 @@ import net.minecraft.world.flag.FeatureFlags
 import net.minecraft.world.inventory.ContainerLevelAccess
 import net.minecraft.world.inventory.MenuType
 import net.minecraft.world.item.BlockItem
+import net.minecraft.world.item.CreativeModeTabs
 import net.minecraft.world.item.Item
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
@@ -26,17 +27,17 @@ import net.minecraft.world.level.block.SoundType
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.BlockHitResult
+import java.util.function.Consumer
 
 object DisenchanterBlocks {
     val ID = Identifier.fromNamespaceAndPath(Disenchanter.MOD_ID, "disenchanter_table")
 
-    // إنشاء مفاتيح التعريف الإجبارية لإصدار 26.3
     val BLOCK_KEY: ResourceKey<Block> = ResourceKey.create(Registries.BLOCK, ID)
     val ITEM_KEY: ResourceKey<Item> = ResourceKey.create(Registries.ITEM, ID)
 
     val TABLE_BLOCK = DisenchanterTableBlock(
         BlockBehaviour.Properties.ofFullCopy(Blocks.ENCHANTING_TABLE)
-            .setId(BLOCK_KEY) // شرط ماينكرافت 26.3 الإجباري
+            .setId(BLOCK_KEY)
             .strength(4.0f, 1200.0f)
             .sound(SoundType.DEEPSLATE)
     )
@@ -55,6 +56,18 @@ object DisenchanterBlocks {
         Registry.register(BuiltInRegistries.BLOCK, BLOCK_KEY, TABLE_BLOCK)
         Registry.register(BuiltInRegistries.ITEM, ITEM_KEY, TABLE_ITEM)
         Registry.register(BuiltInRegistries.MENU, ID, MENU_TYPE)
+
+        // تسجيل بالـ Creative والبحث بأمان تام
+        runCatching {
+            val clazz = Class.forName("net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents")
+            val method = clazz.getMethod("modifyEntriesEvent", ResourceKey::class.java)
+            val event = method.invoke(null, CreativeModeTabs.FUNCTIONAL_BLOCKS)
+            val reg = event.javaClass.getMethod("register", Consumer::class.java)
+            reg.invoke(event, Consumer<Any> { entries ->
+                val accept = entries.javaClass.methods.firstOrNull { it.name == "accept" && it.parameterCount == 1 }
+                accept?.invoke(entries, TABLE_ITEM)
+            })
+        }
     }
 }
 
