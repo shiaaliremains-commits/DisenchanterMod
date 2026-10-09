@@ -69,15 +69,15 @@ class DisenchanterScreen(
     override fun extractRenderState(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, delta: Float) {
         super.extractRenderState(graphics, mouseX, mouseY, delta)
 
-        // رسم كارت الواجهة الداكن النيون الفخم
         val bg = 0xF20F1626.toInt()
         val border = 0xFF283A5E.toInt()
         val slotBorder = 0xFF3E5A8F.toInt()
 
+        // رسم كارت الواجهة بالمدخلات الخمسة الصحيحة
         graphics.fill(leftPos, topPos, leftPos + imageWidth, topPos + imageHeight, bg)
         graphics.fill(leftPos, topPos, leftPos + imageWidth, topPos + 1, border)
         graphics.fill(leftPos, topPos + imageHeight - 1, leftPos + imageWidth, topPos + imageHeight, border)
-        graphics.fill(leftPos, topPos + 1, leftPos + imageHeight, border)
+        graphics.fill(leftPos, topPos, leftPos + 1, topPos + imageHeight, border)
         graphics.fill(leftPos + imageWidth - 1, topPos, leftPos + imageWidth, topPos + imageHeight, border)
 
         // عنوان الطاولة
@@ -85,9 +85,9 @@ class DisenchanterScreen(
         graphics.centeredText(font, title, leftPos + imageWidth / 2, topPos + 7, 0xFFE24D.toInt())
 
         // مربعات الخانات
-        drawSlot(graphics, leftPos + 31, topPos + 21, slotBorder) // خانة الأداة
-        drawSlot(graphics, leftPos + 31, topPos + 53, slotBorder) // خانة الكتاب
-        drawSlot(graphics, leftPos + 101, topPos + 37, 0xFF00FF66.toInt()) // خانة النتيجة المشعة
+        drawSlot(graphics, leftPos + 31, topPos + 21, slotBorder)
+        drawSlot(graphics, leftPos + 31, topPos + 53, slotBorder)
+        drawSlot(graphics, leftPos + 101, topPos + 37, 0xFF00FF66.toInt())
 
         // سهم التدفق السحري
         graphics.centeredText(font, Component.literal("➔").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD), leftPos + 72, topPos + 40, 0xFF00E5FF.toInt())
@@ -97,7 +97,7 @@ class DisenchanterScreen(
         g.fill(x, y, x + 18, y + 18, 0xAA080C14.toInt())
         g.fill(x, y, x + 18, y + 1, color)
         g.fill(x, y + 17, x + 18, y + 18, color)
-        g.fill(x, y + 1, y + 18, color)
+        g.fill(x, y, x + 1, y + 18, color)
         g.fill(x + 17, y, x + 18, y + 18, color)
     }
 }
