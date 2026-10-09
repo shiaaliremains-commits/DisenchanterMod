@@ -68,8 +68,25 @@ public abstract class GrindstoneMenuMixin extends AbstractContainerMenu implemen
         return stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
     }
 
+    // فك قيود الخانات للسماح بوضع الكتب العادية والأدوات
     @Inject(method = "<init>(ILnet/minecraft/world/entity/player/Inventory;Lnet/minecraft/world/inventory/ContainerLevelAccess;)V", at = @At("TAIL"))
-    private void wrapResultSlot(int i, Inventory inventory, ContainerLevelAccess containerLevelAccess, CallbackInfo ci) {
+    private void uncapGrindstoneSlots(int i, Inventory inventory, ContainerLevelAccess containerLevelAccess, CallbackInfo ci) {
+        Slot slot0 = this.slots.get(0);
+        this.slots.set(0, new Slot(this.repairSlots, 0, slot0.x, slot0.y) {
+            @Override
+            public boolean mayPlace(ItemStack stack) {
+                return true; // يقبل أي أداة أو كتاب
+            }
+        });
+
+        Slot slot1 = this.slots.get(1);
+        this.slots.set(1, new Slot(this.repairSlots, 1, slot1.x, slot1.y) {
+            @Override
+            public boolean mayPlace(ItemStack stack) {
+                return true; // يقبل الكتب العادية والأدوات
+            }
+        });
+
         if (this.slots.size() > 2) {
             Slot orig = this.slots.get(2);
             this.slots.set(2, new DisenchantResultSlot((GrindstoneMenu) (Object) this, orig, this.repairSlots, this.resultSlots, this.access));
@@ -87,15 +104,15 @@ public abstract class GrindstoneMenuMixin extends AbstractContainerMenu implemen
             if (!enchants.isEmpty()) {
                 this.disenchanter$isExtracting = true;
 
-                if (this.disenchanter$selected.isEmpty()) {
-                    for (Holder<Enchantment> holder : enchants.keySet()) {
-                        this.disenchanter$selected.add(holder.getRegisteredName());
-                        break;
-                    }
-                }
-
-                // الحالة 1: الغرض السفلي كتاب (عادي أو مسحور) -> استخراج التطوير لكتاب
+                // 1. استخراج لكتاب (الخانة السفلية كتاب عادي أو مسحور)
                 if (bottom.is(Items.BOOK) || bottom.is(Items.ENCHANTED_BOOK)) {
+                    if (this.disenchanter$selected.isEmpty()) {
+                        for (Holder<Enchantment> holder : enchants.keySet()) {
+                            this.disenchanter$selected.add(holder.getRegisteredName());
+                            break;
+                        }
+                    }
+
                     ItemStack resultBook = new ItemStack(Items.ENCHANTED_BOOK);
                     ItemEnchantments.Mutable bookEnchants = new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);
 
@@ -113,24 +130,34 @@ public abstract class GrindstoneMenuMixin extends AbstractContainerMenu implemen
                         return;
                     }
                 }
-                // الحالة 2: الغرض العلوي كتاب مسحور، والغرض السفلي أداة/درع -> نقل التطوير للسلاح
+                // 2. نقل التطوير لأداة (الخانة السفلية سلاح أو درع - فقط التطويرات المتوافقة معه)
                 else if (top.is(Items.ENCHANTED_BOOK)) {
                     ItemStack resultItem = bottom.copy();
                     resultItem.setCount(1);
                     ItemEnchantments bottomEnchants = disenchanter$getEnchants(bottom);
                     ItemEnchantments.Mutable newEnchants = new ItemEnchantments.Mutable(bottomEnchants);
+                    boolean addedAny = false;
 
                     for (Holder<Enchantment> holder : enchants.keySet()) {
-                        if (this.disenchanter$selected.contains(holder.getRegisteredName())) {
-                            newEnchants.set(holder, enchants.getLevel(holder));
+                        // فلترة: التأكد أن التطويرة مسموحة وممكنة للأداة السفلية حصراً
+                        if (holder.value().canEnchant(resultItem)) {
+                            if (this.disenchanter$selected.isEmpty()) {
+                                this.disenchanter$selected.add(holder.getRegisteredName());
+                            }
+                            if (this.disenchanter$selected.contains(holder.getRegisteredName())) {
+                                newEnchants.set(holder, enchants.getLevel(holder));
+                                addedAny = true;
+                            }
                         }
                     }
 
-                    EnchantmentHelper.setEnchantments(resultItem, newEnchants.toImmutable());
-                    this.resultSlots.setItem(0, resultItem);
-                    this.broadcastChanges();
-                    ci.cancel();
-                    return;
+                    if (addedAny) {
+                        EnchantmentHelper.setEnchantments(resultItem, newEnchants.toImmutable());
+                        this.resultSlots.setItem(0, resultItem);
+                        this.broadcastChanges();
+                        ci.cancel();
+                        return;
+                    }
                 }
             }
         }
